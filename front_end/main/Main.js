@@ -73,6 +73,12 @@ Main.Main = class {
     console.timeStamp('Main._gotPreferences');
     if (Host.isUnderTest(prefs))
       self.runtime.useTestBase();
+    // for dirac testing
+    if (Runtime.queryParam("reset_settings")) {
+      console.info("DIRAC TESTING: clear devtools settings because reset_settings is present in url params");
+      window.localStorage.clear(); // also wipe-out local storage to prevent tests flakiness
+      prefs = {};
+    }
     this._createSettings(prefs);
     this._createAppUI();
   }
@@ -154,6 +160,8 @@ Main.Main = class {
    * @suppressGlobalPropertiesCheck
    */
   async _createAppUI() {
+    await dirac.getReadyPromise();
+
     Main.Main.time('Main._createAppUI');
 
     UI.viewManager = new UI.ViewManager();
@@ -262,6 +270,7 @@ Main.Main = class {
     // Allow UI cycles to repaint prior to creating connection.
     setTimeout(this._initializeTarget.bind(this), 0);
     Main.Main.timeEnd('Main._showAppUI');
+    dirac.feedback("devtools ready");
   }
 
   async _initializeTarget() {
@@ -302,6 +311,7 @@ Main.Main = class {
     }
     this._lateInitDonePromise = Promise.all(promises);
     Main.Main.timeEnd('Main._lateInitialization');
+    dirac.notifyFrontendInitialized();
   }
 
   /**

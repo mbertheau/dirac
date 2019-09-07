@@ -70,9 +70,11 @@ def to_platform_path_exact(filepath):
 
 SCRIPTS_PATH = path.dirname(path.abspath(__file__))
 DEVTOOLS_PATH = path.dirname(SCRIPTS_PATH)
-INSPECTOR_PATH = path.join(path.dirname(DEVTOOLS_PATH), 'core', 'inspector')
+CHROMIUM_PATH = path.join(DEVTOOLS_PATH,  os.pardir, os.pardir, os.pardir, os.pardir, 'chromium-mirror')
+WEBKIT_PATH = path.join(CHROMIUM_PATH, 'third_party', 'blink', 'renderer')
+INSPECTOR_PATH = path.join(WEBKIT_PATH, 'core', 'inspector')
 # TODO(dgozman): move these checks to v8.
-V8_INCLUDE_PATH = path.normpath(path.join(path.dirname(DEVTOOLS_PATH), os.pardir, os.pardir, os.pardir, 'v8', 'include'))
+V8_INCLUDE_PATH = path.normpath(path.join(CHROMIUM_PATH, 'v8', 'include'))
 DEVTOOLS_FRONTEND_PATH = path.join(DEVTOOLS_PATH, 'front_end')
 GLOBAL_EXTERNS_FILE = to_platform_path(path.join(DEVTOOLS_FRONTEND_PATH, 'externs.js'))
 DEFAULT_PROTOCOL_EXTERNS_FILE = path.join(DEVTOOLS_FRONTEND_PATH, 'protocol_externs.js')
@@ -107,13 +109,17 @@ def error_excepthook(exctype, value, traceback):
 
 sys.excepthook = error_excepthook
 
-APPLICATION_DESCRIPTORS = [
-    'inspector',
-    'toolbox',
-    'integration_test_runner',
-    'formatter_worker',
-    'heap_snapshot_worker',
-]
+# <------- cut here
+# darwin: I have deliberately touched these descriptors so I bump into conflicts when anyone touches this
+# => we need to update our release script in scripts/release.sh
+APPLICATION_DESCRIPTORS = [ #
+    'inspector', #
+    'toolbox', #
+    'integration_test_runner', #
+    'formatter_worker', #
+    'heap_snapshot_worker' #
+] #
+# <------- cut here
 
 SKIPPED_NAMESPACES = {
     'Console',  # Closure uses Console as a namespace item so we cannot override it right now.
@@ -323,6 +329,13 @@ def generate_namespace_externs(modules_by_name):
     namespace_externs_path = to_platform_path(namespace_externs_file.name)
     return namespace_externs_path
 
+# do not remove, this is needed by resources/unpacked/devtools/scripts/generate_namespaces_externs.py
+def generate_namespace_externs_to_file(path):
+    loader = modular_build.DescriptorLoader(DEVTOOLS_FRONTEND_PATH)
+    descriptors = loader.load_applications(APPLICATION_DESCRIPTORS)
+    modules_by_name = descriptors.modules
+    tmp_namespace_externs_path = generate_namespace_externs(modules_by_name)
+    os.rename(tmp_namespace_externs_path, path)
 
 def main():
     protocol_externs_file = DEFAULT_PROTOCOL_EXTERNS_FILE

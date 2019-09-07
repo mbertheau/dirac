@@ -503,7 +503,8 @@ Components.Linkifier = class {
       return false;
     const actions = Components.Linkifier._linkActions(link);
     if (actions.length) {
-      actions[0].handler.call(null);
+      const handler = /** @type { function(?Event=) } */(actions[0].handler);
+      handler.call(null, event);
       return true;
     }
     return false;
@@ -581,6 +582,7 @@ Components.Linkifier = class {
     }
     if (contentProvider) {
       const lineNumber = uiLocation ? uiLocation.lineNumber : info.lineNumber || 0;
+      const columnNumber = uiLocation ? uiLocation.columnNumber : info.columnNumber || 0;
       for (const title of Components.Linkifier._linkHandlers.keys()) {
         const handler = Components.Linkifier._linkHandlers.get(title);
         const action = {
@@ -592,6 +594,15 @@ Components.Linkifier = class {
           result.unshift(action);
         else
           result.push(action);
+      }
+      if (dirac.hasLinkActions) {
+        const diracAction = Components.Linkifier.diracLinkHandlerAction;
+        if (diracAction) {
+          result.unshift({
+            title: diracAction.title,
+            handler: diracAction.handler.bind(null, result, contentProvider.contentURL(), lineNumber, columnNumber)
+          });
+        }
       }
     }
     if (resource || info.url) {
